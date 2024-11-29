@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { auth, firestore } from './firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
@@ -9,7 +10,7 @@ const Container = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
   padding: 2rem;
 `;
 
@@ -29,7 +30,30 @@ const Input = styled.input`
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 1rem;
+  background-color: white; /* Ensure the background is white */
+  color: #333; /* Text color */
+  box-sizing: border-box;
+  &:focus {
+    outline-color: #1e3a8a; /* Royal Blue outline on focus */
+  }
 `;
+
+const Textarea = styled.textarea`
+  width: 100%;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  resize: vertical;
+  background-color: white; /* Set background to white */
+  color: #333; /* Text color */
+  box-sizing: border-box;
+  &:focus {
+    outline-color: #1e3a8a; /* Royal Blue outline on focus */
+  }
+`;
+
 
 const Button = styled.button`
   width: 100%;
@@ -37,33 +61,32 @@ const Button = styled.button`
   margin: 1rem 0;
   border: none;
   border-radius: 5px;
-  background: #ff7e5f;
+  background: #1e3a8a;
   color: white;
-  font-size: 1rem;
   cursor: pointer;
+  transition: background-color 0.3s;
   &:hover {
-    background: #feb47b;
+    background: #3b82f6;
+  }
+`;
+
+const BackButton = styled(Button)`
+  background: #2563eb;
+  width: auto;
+  margin-top: 2rem;
+  &:hover {
+    background: #3b82f6;
   }
 `;
 
 const Title = styled.h1`
-  margin-bottom: 1rem;
   color: white;
+  margin-bottom: 2rem;
 `;
 
-const ProfileImage = styled.div`
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  background-color: ${(props) => props.backgroundColor};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  color: white;
-  margin-bottom: 1rem;
+const Error = styled.p`
+  color: red;
+  font-size: 0.9rem;
 `;
 
 const Profile = () => {
@@ -72,30 +95,23 @@ const Profile = () => {
     dateOfBirth: '',
     mobileNumber: '',
     gender: '',
-    ageGroup: '',
     maritalStatus: '',
     email: '',
     address: '',
   });
-
   const [loading, setLoading] = useState(true);
+  const [emailError, setEmailError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserData = async () => {
       const user = auth.currentUser;
       if (user) {
-        console.log("User is authenticated:", user);
         const docRef = doc(firestore, `users/${user.uid}`);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          console.log("Data fetched from Firestore:", data);
-          setFormData(data);
-        } else {
-          console.log("No such document in Firestore!");
+          setFormData(docSnap.data());
         }
-      } else {
-        console.log("No user is authenticated.");
       }
       setLoading(false);
     };
@@ -103,30 +119,30 @@ const Profile = () => {
   }, []);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    if (name === 'email') {
+      validateEmail(value);
+    }
+  };
+
+  const validateEmail = (email) => {
+    if (!email.endsWith('@gmail.com')) {
+      setEmailError('Email must end with @gmail.com');
+    } else {
+      setEmailError('');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
-    if (user) {
+    if (user && !emailError) {
       const docRef = doc(firestore, `users/${user.uid}`);
       await updateDoc(docRef, formData);
       alert('Profile updated successfully!');
     }
-  };
-
-  const getInitials = (name) => {
-    return name ? name.charAt(0).toUpperCase() : 'U';
-  };
-
-  const generateRandomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
   };
 
   if (loading) {
@@ -136,9 +152,6 @@ const Profile = () => {
   return (
     <Container>
       <Title>Profile</Title>
-      <ProfileImage backgroundColor={generateRandomColor()}>
-        {getInitials(formData.name)}
-      </ProfileImage>
       <Form onSubmit={handleSubmit}>
         <Input
           type="text"
@@ -150,7 +163,6 @@ const Profile = () => {
         <Input
           type="date"
           name="dateOfBirth"
-          placeholder="Date of Birth"
           value={formData.dateOfBirth}
           onChange={handleChange}
         />
@@ -161,43 +173,30 @@ const Profile = () => {
           value={formData.mobileNumber}
           onChange={handleChange}
         />
-        <Input
-          type="text"
-          name="gender"
-          placeholder="Gender"
-          value={formData.gender}
-          onChange={handleChange}
-        />
-        <Input
-          type="text"
-          name="ageGroup"
-          placeholder="Age Group"
-          value={formData.ageGroup}
-          onChange={handleChange}
-        />
-        <Input
-          type="text"
-          name="maritalStatus"
-          placeholder="Marital Status"
-          value={formData.maritalStatus}
-          onChange={handleChange}
-        />
+
         <Input
           type="email"
           name="email"
           placeholder="Email"
           value={formData.email}
+          onChange={handleChange}
           disabled
         />
-        <Input
-          type="text"
+        {emailError && <Error>{emailError}</Error>}
+
+        <Textarea
           name="address"
           placeholder="Address"
+          rows="4"
           value={formData.address}
           onChange={handleChange}
         />
+
         <Button type="submit">Update Profile</Button>
       </Form>
+
+      {/* Blue Back Button to redirect to the Donation page */}
+      <BackButton onClick={() => navigate('/donation')}>Back to Donations</BackButton>
     </Container>
   );
 };

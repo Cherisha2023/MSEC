@@ -1,9 +1,7 @@
-// Login.jsx
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import ReCAPTCHA from 'react-google-recaptcha';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase';
 
@@ -12,13 +10,13 @@ const Container = styled.div`
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  background: linear-gradient(135deg, #4169e1, #1e3a8a);
 `;
 
 const Form = styled(motion.form)`
   background: white;
   padding: 3rem;
-  border-radius: 20px 20px;
+  border-radius: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 500px;
@@ -32,10 +30,15 @@ const Input = styled(motion.input)`
   width: 100%;
   padding: 1rem;
   margin: 0.5rem 0;
-  border: 1px solid #ddd;
+  border: 1px solid #4169e1;
   border-radius: 5px;
   font-size: 1rem;
   color: #333;
+  background-color: white;
+  box-sizing: border-box;
+  &:focus {
+    outline-color: #1e3a8a;
+  }
 `;
 
 const Button = styled(motion.button)`
@@ -44,40 +47,36 @@ const Button = styled(motion.button)`
   margin: 1rem 0;
   border: none;
   border-radius: 5px;
-  background: #ff7e5f;
+  background: #4169e1;
   color: white;
   font-size: 1rem;
   cursor: pointer;
   &:hover {
-    background: #feb47b;
+    background: #1e3a8a;
   }
 `;
 
 const Header = styled.h1`
   text-align: center;
   margin-bottom: 1rem;
-  color: blue;
+  color: #4169e1;
 `;
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [captchaValue, setCaptchaValue] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!captchaValue) {
-      alert('Please complete the captcha');
-      return;
-    }
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      if (email === 'admin@example.com') { // Check if the logged-in user is an admin
-        navigate('/admin-dashboard'); // Navigate to the admin dashboard if the user is an admin
+      // Check if the logged-in user is an admin
+      if (email === 'admin@example.com') {
+        navigate('/admin-dashboard'); // Navigate to the admin dashboard
       } else {
         navigate('/donation'); // Navigate to the donation page for regular users
       }
@@ -87,13 +86,9 @@ const Login = () => {
       alert('Error logging in: ' + error.message);
     }
 
+    // Clear input fields
     setEmail('');
     setPassword('');
-    setCaptchaValue(null);
-  };
-
-  const handleCaptchaChange = (value) => {
-    setCaptchaValue(value);
   };
 
   return (
@@ -105,7 +100,7 @@ const Login = () => {
         onSubmit={handleSubmit}
       >
         <Header>Login</Header>
-        <label htmlFor="email" style={{ color: 'black' }}>Email</label>
+        <label htmlFor="email" style={{ color: '#4169e1' }}>Email</label>
         <Input
           type="email"
           name="email"
@@ -114,7 +109,7 @@ const Login = () => {
           whileFocus={{ scale: 1.05 }}
           transition={{ duration: 0.2 }}
         />
-        <label htmlFor="password" style={{ color: 'black' }}>Password</label>
+        <label htmlFor="password" style={{ color: '#4169e1' }}>Password</label>
         <Input
           type="password"
           name="password"
@@ -123,12 +118,8 @@ const Login = () => {
           whileFocus={{ scale: 1.05 }}
           transition={{ duration: 0.2 }}
         />
-        <ReCAPTCHA
-          sitekey="6LfoHxoqAAAAAJ0C50EsUQqMScduakmHyihPKeSp"
-          onChange={handleCaptchaChange}
-        />
         <Button type="submit">Login</Button>
-        <Link to="/register">Don't have an account? Register here</Link>
+        <Link to="/register" style={{ color: '#4169e1' }}>Don't have an account? Register here</Link>
       </Form>
     </Container>
   );

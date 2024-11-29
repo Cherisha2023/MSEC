@@ -16,6 +16,7 @@
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "@google-pay/button-react": "^3.1.0",
     "axios": "^1.7.3",
     "body-parser": "^1.20.3",
     "browser-image-compression": "^2.0.2",
@@ -36,7 +37,7 @@
     "react-modal": "^3.16.1",
     "react-router-dom": "^6.26.0",
     "react-toastify": "^10.0.6",
-    "styled-components": "^6.1.12",
+    "styled-components": "^6.1.13",
     "twilio": "^5.3.3",
     "xlsx": "^0.18.5"
   },

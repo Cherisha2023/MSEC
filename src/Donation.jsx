@@ -5,35 +5,46 @@ import { getFirestore, collection, addDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCreditCard, faBank, faMobileAlt } from '@fortawesome/free-solid-svg-icons';
+import GooglePayButton from '@google-pay/button-react';
 
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 2rem;
+  background-color: #1e3a8a; /* Royal Blue Background */
+  min-height: 100vh;
+  padding-top: 2rem;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   width: 100%;
   padding: 1rem;
-  background-color: #f7f7f7;
-  position: absolute;
+  background-color: #1e3a8a; /* Royal Blue Navbar Background */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  position: fixed;
   top: 0;
   right: 0;
+  z-index: 1000;
 `;
 
 const LogoutButton = styled.button`
-  background: none;
+  background-color: #2563eb; /* Slightly lighter blue for contrast */
   border: none;
-  color: #ff7e5f;
+  color: white;
   font-weight: bold;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
+  margin-left: 1rem;
+  transition: background-color 0.3s;
   &:hover {
-    color: #feb47b;
+    background-color: #3b82f6; /* Lighter shade on hover */
   }
 `;
+
 
 const Form = styled.form`
   display: flex;
@@ -45,8 +56,9 @@ const Form = styled.form`
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 500px;
-  margin-top: 3rem;
+  margin-top: 5rem;
 `;
+
 
 const Input = styled.input`
   width: 100%;
@@ -55,8 +67,14 @@ const Input = styled.input`
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 1rem;
+  background-color: white; /* Ensure the background is white */
+  color: #333; /* Text color */
   box-sizing: border-box;
+  &:focus {
+    outline-color: #1e3a8a; /* Royal Blue outline on focus */
+  }
 `;
+
 
 const Button = styled.button`
   width: 100%;
@@ -64,12 +82,13 @@ const Button = styled.button`
   margin: 1rem 0;
   border: none;
   border-radius: 5px;
-  background: #ff7e5f;
+  background: #1e3a8a; /* Royal Blue Button */
   color: white;
   font-size: 1rem;
   cursor: pointer;
+  transition: background 0.3s;
   &:hover {
-    background: #feb47b;
+    background: #3b82f6;
   }
 `;
 
@@ -87,17 +106,15 @@ const PaymentOption = styled.div`
   border: 1px solid #ddd;
   border-radius: 5px;
   width: 30%;
-  background: ${({ selected }) => (selected ? '#feb47b' : 'white')};
+  background: ${({ selected }) => (selected ? '#3b82f6' : 'white')};
   color: ${({ selected }) => (selected ? 'white' : 'black')};
   display: flex;
   flex-direction: column;
   align-items: center;
-`;
-
-const RazorpayImage = styled.img`
-  margin: 1rem 0;
-  max-width: 100%;
-  height: auto;
+  transition: background 0.3s;
+  &:hover {
+    background: ${({ selected }) => (selected ? '#2563eb' : '#f1f5f9')};
+  }
 `;
 
 const Icon = styled(FontAwesomeIcon)`
@@ -109,81 +126,61 @@ const Donation = () => {
   const [amount, setAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('');
   const navigate = useNavigate();
-
   const auth = getAuth();
   const user = auth.currentUser;
 
   if (!user) {
-    navigate('/login'); // Redirect to login if not authenticated
+    navigate('/login');
   }
 
-  const selectPaymentMode = (mode) => {
-    setPaymentMode(mode);
-  };
+  const selectPaymentMode = (mode) => setPaymentMode(mode);
 
   const handleLogout = () => {
-    // Perform logout logic
     auth.signOut().then(() => {
       alert('You have been logged out.');
-      navigate('/'); // Redirect to login page
+      navigate('/');
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (amount === "") {
-      alert("Please enter the amount");
+    if (amount === '') {
+      alert('Please enter the amount');
       return;
     }
 
-    if (paymentMode === "") {
-      alert("Please select a payment mode");
+    if (paymentMode === '') {
+      alert('Please select a payment mode');
       return;
     }
 
-    const options = {
-      key: "rzp_test_XdJ18xJhFvpuOD",
-      key_secret: "J1ctt40eectgAs5COl5baMcX",
-      amount: amount * 100, // Amount in paise
-      currency: "INR",
-      name: "non-profit",
-      description: "for testing purpose",
-      handler: async (response) => {
-        alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
-        try {
+    if (paymentMode === 'card' || paymentMode === 'netbanking') {
+      const options = {
+        key: 'rzp_test_XdJ18xJhFvpuOD',
+        amount: amount * 100,
+        currency: 'INR',
+        name: 'non-profit',
+        handler: async (response) => {
+          alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
           const db = getFirestore();
           await addDoc(collection(db, 'donations'), {
-            donorName: user.displayName || "Anonymous",
+            donorName: user.displayName || 'Anonymous',
             amount: parseInt(amount, 10),
             paymentMode,
             date: new Date(),
             paymentId: response.razorpay_payment_id,
           });
           navigate('/payment-success', { state: { amount, paymentMode } });
-        } catch (error) {
-          console.error("Error adding donation: ", error);
-          alert("Error saving donation. Please try again.");
-        }
-      },
-      prefill: {
-        name: user.displayName || "Anonymous",
-        email: user.email || "",
-        contact: user.phoneNumber || "1234567890"
-      },
-      notes: {
-        address: "Razorpay Corporate office"
-      },
-      theme: {
-        color: "#ff7e5f"
-      },
-      modal: {
-        ondismiss: function () {
-          alert('Payment window closed by user');
-        }
-      }
-    };
-    const pay = new window.Razorpay(options);
-    pay.open();
+        },
+        prefill: {
+          name: user.displayName || 'Anonymous',
+          email: user.email || '',
+        },
+        theme: { color: '#1e3a8a' },
+      };
+      const pay = new window.Razorpay(options);
+      pay.open();
+    }
   };
 
   return (
@@ -192,7 +189,7 @@ const Donation = () => {
         <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
       </Header>
       <Form onSubmit={handleSubmit}>
-        <h1>Donate</h1>
+        <h1 style={{ color: '#1e3a8a' }}>Donate</h1>
         <label htmlFor="amount">Select Amount:</label>
         <Input
           type="number"
@@ -202,29 +199,51 @@ const Donation = () => {
           min="1"
         />
         <PaymentModes>
-          <PaymentOption
-            selected={paymentMode === 'netbanking'}
-            onClick={() => selectPaymentMode('netbanking')}
-          >
+          <PaymentOption selected={paymentMode === 'netbanking'} onClick={() => selectPaymentMode('netbanking')}>
             <Icon icon={faBank} />
             Netbanking
           </PaymentOption>
-          <PaymentOption
-            selected={paymentMode === 'upi'}
-            onClick={() => selectPaymentMode('upi')}
-          >
+          <PaymentOption selected={paymentMode === 'upi'} onClick={() => selectPaymentMode('upi')}>
             <Icon icon={faMobileAlt} />
-            UPI
+            UPI (Google Pay)
           </PaymentOption>
-          <PaymentOption
-            selected={paymentMode === 'card'}
-            onClick={() => selectPaymentMode('card')}
-          >
+          <PaymentOption selected={paymentMode === 'card'} onClick={() => selectPaymentMode('card')}>
             <Icon icon={faCreditCard} />
             Card
           </PaymentOption>
         </PaymentModes>
-        <RazorpayImage src="src/razor2.png" alt="Razorpay" />
+
+        {paymentMode === 'upi' && (
+          <GooglePayButton
+            environment="TEST"
+            paymentRequest={{
+              apiVersion: 2,
+              apiVersionMinor: 0,
+              allowedPaymentMethods: [
+                {
+                  type: 'CARD',
+                  parameters: {
+                    allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                    allowedCardNetworks: ['MASTERCARD', 'VISA'],
+                  },
+                  tokenizationSpecification: {
+                    type: 'PAYMENT_GATEWAY',
+                    parameters: { gateway: 'example', gatewayMerchantId: 'exampleMerchantId' },
+                  },
+                },
+              ],
+              merchantInfo: { merchantId: '12345678901234567890', merchantName: 'Demo Merchant' },
+              transactionInfo: { totalPriceStatus: 'FINAL', totalPrice: amount, currencyCode: 'INR' },
+            }}
+            onLoadPaymentData={(paymentData) => {
+              alert('Payment successful via Google Pay!');
+              navigate('/payment-success', { state: { amount, paymentMode: 'UPI' } });
+            }}
+            buttonColor="black"
+            buttonType="buy"
+          />
+        )}
+
         <Button type="submit">Donate</Button>
       </Form>
     </Container>
